@@ -3,7 +3,7 @@
 use std::str::FromStr;
 use std::io::{Read, Write};
 use anyhow::{bail, Result};
-use crate::errors::PemJwkError;
+use crate::errors::Error;
 
 /// Test string values to match against
 /*
@@ -24,7 +24,7 @@ impl FromStr for Alg {
         match s.to_uppercase().as_str() {
             "RSA" => Ok(Alg::RSA),
             "EC" => Ok(Alg::EC),
-            _ => bail!(PemJwkError::AlgError),
+            _ => bail!(Error::AlgError),
         }
     }
 }
@@ -44,7 +44,7 @@ impl FromStr for KeyType {
             "PUBLIC" => Ok(KeyType::Public),
             "PRIVATE" => Ok(KeyType::Private),
             "KEYPAIR" => Ok(KeyType::KeyPair),
-            _ => bail!(PemJwkError::KeyTypeError),
+            _ => bail!(Error::KeyTypeError),
         }
     }
 }
@@ -62,7 +62,7 @@ impl FromStr for PKCS {
        match s.to_uppercase().as_str() {
             "PKCS8" => Ok(PKCS::PKCS8),
             "PKCS1" => Ok(PKCS::PKCS1),
-            _ => bail!(PemJwkError::AlgError),
+            _ => bail!(Error::AlgError),
         }
     }
 }
@@ -82,7 +82,7 @@ impl FromStr for Encoding {
             "PEM" => Ok(Encoding::PEM),
             "DER" => Ok(Encoding::DER),
             "JWK" => Ok(Encoding::JWK),
-            _ => bail!(PemJwkError::EncodingError),
+            _ => bail!(Error::EncodingError),
         }
     }
 }
@@ -135,7 +135,7 @@ impl AppState {
         let _cnt = self
             .in_stream
             .read_to_end(&mut bytes)
-            .map_err(|e| PemJwkError::IOEReadError(e));
+            .map_err(|e| Error::IOEReadError(e));
         Ok(bytes)
     }
 
@@ -143,7 +143,7 @@ impl AppState {
         let _ = self
             .out_stream
             .write_all(bytes)
-            .map_err(|e| PemJwkError::IOEWriteError(e));
+            .map_err(|e| Error::IOEWriteError(e));
         Ok(())
     }
 }

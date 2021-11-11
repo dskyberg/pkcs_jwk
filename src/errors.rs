@@ -1,8 +1,8 @@
-//! PemJwkError enumerates all possible errors returned by this library.
+//! Enumerates all possible errors returned by this library.
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum PemJwkError {
+pub enum Error {
     /// Represents a failure to read from input.
     #[error("File input error")]
     ReadFileError(std::io::Error),
@@ -51,4 +51,7 @@ pub enum PemJwkError {
 
     #[error("Input type mismatch")]
     TypeMismatch,
+
+    #[error( "Option is not yet supported")]
+    NotSupported,
 }

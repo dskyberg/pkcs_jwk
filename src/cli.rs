@@ -1,8 +1,13 @@
+//! Command line processing
+//!
+//! Processes the arguments on the command line to generate an AppState instance,
+//! and execute the program with the provided args.
+//!
 use std::str::FromStr;
 use clap::{ArgMatches};
 use anyhow::Result;
 use crate::app_state::*;
-use crate::errors::PemJwkError;
+use crate::errors::Error;
 
 pub fn process(matches: &ArgMatches) -> Result<AppState> {
     let mut app_state = AppState::new();
@@ -15,7 +20,7 @@ pub fn process(matches: &ArgMatches) -> Result<AppState> {
     if let Some(filename) = matches.value_of("in") {
         app_state.in_params.file = Some(filename.to_string());
         app_state.in_stream =
-            Box::new(std::fs::File::open(filename).map_err(|e| PemJwkError::ReadFileError(e))?);
+            Box::new(std::fs::File::open(filename).map_err(|e| Error::ReadFileError(e))?);
 
         //TODO IF no from arg is provided, see if we can determine from the filename.
         if matches.value_of("from").is_none() {
@@ -26,7 +31,7 @@ pub fn process(matches: &ArgMatches) -> Result<AppState> {
     if let Some(filename) = matches.value_of("out") {
         app_state.out_params.file = Some(filename.to_string());
         app_state.out_stream =
-            Box::new(std::fs::File::create(filename).map_err(|e| PemJwkError::ReadFileError(e))?);
+            Box::new(std::fs::File::create(filename).map_err(|e| Error::ReadFileError(e))?);
         //TODO IF no from arg is provided, see if we can determine from the filename.
         if matches.value_of("to").is_none() {
         }
