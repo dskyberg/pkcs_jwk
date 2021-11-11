@@ -280,18 +280,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pem_jwk"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "josekit",
- "openssl",
- "pkcs8",
- "thiserror",
-]
-
-[[package]]
 name = "pkcs1"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -312,6 +300,18 @@ dependencies = [
  "pkcs1",
  "spki",
  "zeroize",
+]
+
+[[package]]
+name = "pkcs_jwk"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "josekit",
+ "openssl",
+ "pkcs8",
+ "thiserror",
 ]
 
 [[package]]

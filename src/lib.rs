@@ -27,7 +27,7 @@
 //! ````
 //! > openssl rsa -inform DER -in key.der -outform PEM -out key.pem
 //! ````
-//! You can then use pem_jwk with the PEM input option.
+//! You can then use pkcs_jwk with the PEM input option.
 //!
 //! ## JWK
 //! JSON Web Key (JWK) is a standard format used in JSON based protocols, such as
@@ -35,14 +35,14 @@
 //! for encrypting and signing JWT tokens.
 //!
 //! # Command line Usage
-//! To see all the command line args, run `pem_jwk -h`.
+//! To see all the command line args, run `pkcs_jwk -h`.
 //!
 //! ## PEM to JWK
 //! This is the default mode.  Add this at the end of openssl key generation,
 //! for easy JWK creation:
 //!
 //! ````
-//! <stream input file> | pem_jwk
+//! <stream input file> | pkcs_jwk
 //! ````
 //!
 use pkcs8;

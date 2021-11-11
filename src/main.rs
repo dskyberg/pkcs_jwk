@@ -1,6 +1,6 @@
 use clap::{App, Arg};
 use anyhow::Result;
-use pem_jwk::{convert, cli::process};
+use pkcs_jwk::{convert, cli::process};
 
 fn main() -> Result<()> {
     // Get the current version from cargo.toml

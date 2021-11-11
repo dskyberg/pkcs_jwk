@@ -1,5 +1,5 @@
 [package]
-name = "pem_jwk"
+name = "pkcs_jwk"
 version = "0.1.0"
 edition = "2018"
 
