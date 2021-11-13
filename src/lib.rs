@@ -70,10 +70,28 @@ fn pkcs8_pem_to_rsa_private(bytes: &Vec<u8>) -> Result<Rsa<Private>> {
     Ok(key)
 }
 
+/// Create RSA<Private> from a password protected PKCS8 PEM buffer
+fn pkcs8_encrypted_pem_to_rsa_private(bytes: &Vec<u8>, passphrase: &str) -> Result<Rsa<Private>> {
+    let key = Rsa::private_key_from_pem_passphrase(bytes, passphrase.as_bytes())
+        .map_err(|e| Error::BadPEMFile(e))?;
+    Ok(key)
+}
+
 /// Create RSA<Private> from PKCS8 DER buffer
 fn pkcs8_der_to_rsa_private(bytes: &Vec<u8>) -> Result<Rsa<Private>> {
-    let pkd =
-        pkcs8::PrivateKeyDocument::from_der(&bytes).map_err(|e| Error::BadPKCS8File(e))?;
+    let pkd = pkcs8::PrivateKeyDocument::from_der(&bytes).map_err(|e| Error::BadPKCS8File(e))?;
+    let pki = pkd.private_key_info();
+    //pkcs1_from_pkcs8_doc(pki.private_key);
+    pkcs1_der_to_rsa_private(&pki.private_key.to_vec())
+}
+
+/// Create RSA<Private> from password protected PKCS8 DER buffer
+fn pkcs8_encrypted_der_to_rsa_private(bytes: &Vec<u8>, passphrase: &str) -> Result<Rsa<Private>> {
+    let epkd =
+        pkcs8::EncryptedPrivateKeyDocument::from_der(&bytes).map_err(|e| Error::BadPKCS8File(e))?;
+    let pkd = epkd
+        .decrypt(passphrase.as_bytes())
+        .map_err(|e| Error::BadPKCS8File(e))?;
     let pki = pkd.private_key_info();
     //pkcs1_from_pkcs8_doc(pki.private_key);
     pkcs1_der_to_rsa_private(&pki.private_key.to_vec())
@@ -106,9 +124,15 @@ fn pkcs1_jwk_to_rsa_private(bytes: &Vec<u8>) -> Result<Rsa<Private>> {
 /// PKCS1 or PKCS8 and whether the encoding is PEM, DER, or JWK
 fn bytes_to_rsa_private(app_state: &mut AppState, bytes: &Vec<u8>) -> Result<Rsa<Private>> {
     match (app_state.in_params.encoding, app_state.in_params.pkcs) {
-        (Encoding::DER, PKCS::PKCS8) => pkcs8_der_to_rsa_private(bytes),
+        (Encoding::DER, PKCS::PKCS8) => match &app_state.in_params.password {
+            Some(passphrase) => pkcs8_encrypted_der_to_rsa_private(bytes, passphrase),
+            None => pkcs8_der_to_rsa_private(bytes),
+        },
         (Encoding::DER, PKCS::PKCS1) => pkcs1_der_to_rsa_private(bytes),
-        (Encoding::PEM, PKCS::PKCS8) => pkcs8_pem_to_rsa_private(bytes),
+        (Encoding::PEM, PKCS::PKCS8) => match &app_state.in_params.password {
+            Some(passphrase) => pkcs8_encrypted_pem_to_rsa_private(bytes, passphrase),
+            None => pkcs8_pem_to_rsa_private(bytes),
+        },
         (Encoding::PEM, PKCS::PKCS1) => pkcs1_pem_to_rsa_private(bytes),
         (Encoding::JWK, PKCS::PKCS1) => pkcs1_jwk_to_rsa_private(bytes),
         (Encoding::JWK, PKCS::PKCS8) => bail!(Error::TypeMismatch),
@@ -117,41 +141,31 @@ fn bytes_to_rsa_private(app_state: &mut AppState, bytes: &Vec<u8>) -> Result<Rsa
 
 /// Write RSA<Private> to DER buffer
 fn rsa_private_to_pkcs1_der(key: &Rsa<Private>) -> Result<Vec<u8>> {
-    let buffer = key
-        .private_key_to_der()
-        .map_err(|e| Error::BadPEMFile(e))?;
+    let buffer = key.private_key_to_der().map_err(|e| Error::BadPEMFile(e))?;
     Ok(buffer)
 }
 
 /// Write RSA<Private> to DER buffer
 fn rsa_private_to_pkcs8_der(key: &Rsa<Private>) -> Result<Vec<u8>> {
-    let buffer = key
-        .private_key_to_der()
-        .map_err(|e| Error::BadPEMFile(e))?;
+    let buffer = key.private_key_to_der().map_err(|e| Error::BadPEMFile(e))?;
     Ok(buffer)
 }
 
 /// Write RSA<Private> to PEM buffer
 fn rsa_private_to_pkcs1_pem(key: &Rsa<Private>) -> Result<Vec<u8>> {
-    let buffer = key
-        .private_key_to_pem()
-        .map_err(|e| Error::BadPEMFile(e))?;
+    let buffer = key.private_key_to_pem().map_err(|e| Error::BadPEMFile(e))?;
     Ok(buffer)
 }
 
 /// Write RSA<Private> to PEM buffer
 fn rsa_private_to_pkcs8_pem(key: &Rsa<Private>) -> Result<Vec<u8>> {
-    let buffer = key
-        .private_key_to_pem()
-        .map_err(|e| Error::BadPEMFile(e))?;
+    let buffer = key.private_key_to_pem().map_err(|e| Error::BadPEMFile(e))?;
     Ok(buffer)
 }
 
 /// Convert RSA<Private> to JWK
 fn rsa_to_jwk(key: &Rsa<Private>, key_id: &Option<String>) -> Result<Jwk> {
-    let der = key
-        .private_key_to_der()
-        .map_err(|e| Error::BadPEMFile(e))?;
+    let der = key.private_key_to_der().map_err(|e| Error::BadPEMFile(e))?;
     let mut kp = RsaKeyPair::from_der(&der).map_err(|e| Error::JWKError(e))?;
     kp.set_key_id(key_id.as_ref());
     Ok(kp.to_jwk_private_key())
@@ -236,7 +250,6 @@ mod tests {
         let result = rsa_private_to_pkcs8_pem(&rsa);
         assert!(result.is_ok());
     }
-
 
     #[test]
     fn try_rsa_private_to_pkcs8_der() {

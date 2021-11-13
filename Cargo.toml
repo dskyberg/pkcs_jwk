@@ -10,5 +10,5 @@ anyhow = "1.0.45"
 clap = "2.33.3"
 josekit = "0.7.4"
 openssl = "0.10.38"
-pkcs8 = {version = "0.7.6", features = ["alloc", "pem", "pkcs1", "std"]}
+pkcs8 = {version = "0.7.6", features = ["alloc", "encryption", "pem", "pkcs1", "pkcs5", "std"]}
 thiserror = "1.0.30"

@@ -22,7 +22,6 @@ fn read_password_from_file(filename: &str) -> Result<Option<String>> {
         .read_to_string(&mut buf)
         .map_err(|e| Error::IOEReadError(e));
 
-    println!("Mode: FILE - Password: {}", &buf);
     Ok(Some(buf))
 
 }
@@ -58,10 +57,7 @@ fn process_password(input: Option<&str>) -> Result<Option<String>> {
                 target = parts[1].to_owned();
             }
             match mode.to_lowercase().as_str() {
-                "pass" => {
-                    println!("Mode: PASS - Password: {}",target);
-                    Ok(Some(target))
-                },
+                "pass" => Ok(Some(target)),
                 "file" => read_password_from_file(&target),
                 _ => bail!(Error::BadPasswordArg)
             }
