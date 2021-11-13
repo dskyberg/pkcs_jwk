@@ -94,6 +94,7 @@ pub struct Params {
     pub encoding: Encoding,
     pub pkcs: PKCS,
     pub encrypted: bool,
+    pub password: Option<String>,
 }
 
 pub struct AppState {
@@ -115,6 +116,7 @@ impl AppState {
                 encoding: Encoding::PEM,
                 pkcs: PKCS::PKCS8,
                 encrypted: false,
+                password: None,
             },
             out_params: Params {
                 key_type: KeyType::Private,
@@ -122,6 +124,7 @@ impl AppState {
                 encoding: Encoding::JWK,
                 pkcs: PKCS::PKCS1,
                 encrypted: false,
+                password: None,
             },
             in_stream: Box::new(std::io::stdin()),
             out_stream: Box::new(std::io::stdout()),

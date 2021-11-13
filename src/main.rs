@@ -6,12 +6,11 @@ fn main() -> Result<()> {
     // Get the current version from cargo.toml
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-    let matches = App::new("My Super Program")
+    let matches = App::new("pkcs_jwk")
         .version(VERSION)
-        .about("Does awesome things")
+        .about("Convert between PKCS and JWK file formats")
         .arg(
             Arg::with_name("in")
-                .short("i")
                 .long("in")
                 .value_name("FILE")
                 .help("Sets the input file to use")
@@ -20,7 +19,6 @@ fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("from")
-                .short("f")
                 .long("from")
                 .value_name("PEM|DER|JWK")
                 .help("Type of input file")
@@ -29,7 +27,6 @@ fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("out")
-                .short("o")
                 .long("out")
                 .value_name("FILE")
                 .help("Sets the output file to use")
@@ -38,7 +35,6 @@ fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("to")
-                .short("t")
                 .long("to")
                 .value_name("PEM|DER|JWK")
                 .help("Type of output file")
@@ -81,7 +77,7 @@ fn main() -> Result<()> {
             Arg::with_name("inpkcs")
                 .long("inpkcs")
                 .value_name("PKCS1|PKCS8")
-                .help("PKCS format of key being input [default is PKCS8")
+                .help("PKCS format of key being input (default is PKCS8)")
                 .required(false)
                 .takes_value(true),
         )
@@ -89,7 +85,23 @@ fn main() -> Result<()> {
             Arg::with_name("outpkcs")
                 .long("outpkcs")
                 .value_name("PKCS1|PKCS8")
-                .help("PKCS format of key being input [default is PKCS1")
+                .help("PKCS format of key being input (default is PKCS1)")
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("inpass")
+                .long("inpass")
+                .value_name("PASSWORD")
+                .help("password for protected input")
+                .required(false)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("outpass")
+                .long("outpass")
+                .value_name("PASSWORD")
+                .help("Password protected ouput")
                 .required(false)
                 .takes_value(true),
         )

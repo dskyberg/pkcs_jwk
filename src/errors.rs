@@ -54,4 +54,7 @@ pub enum Error {
 
     #[error( "Option is not yet supported")]
     NotSupported,
+
+    #[error("Badly formed password arguement")]
+    BadPasswordArg,
 }
