@@ -22,6 +22,12 @@ pub enum Error {
     #[error("JWK error")]
     JWKError(josekit::JoseError),
 
+    #[error(transparent)]
+    JWEError(#[from] josekit::JoseError),
+
+    #[error(transparent)]
+    Base64Error(#[from] base64::DecodeError),
+
     /// Represents unknown file type error`.
     #[error("Uknown file type")]
     FileTypeError,

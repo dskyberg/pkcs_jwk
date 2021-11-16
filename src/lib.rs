@@ -1,54 +1,120 @@
-//! Convert PEM and JWK files
+//! Convert PKCS (1, 8, PEM, DER) to and from JWK files
 //!
 //! This app is designed to ingest a key encoded in one format and produce a
-//! key in the other.  That's all!  It is written in Rust and leverages the
-//! josekit crate (which depends internally on the openssl crate).
+//! key in the other.  That's all!  It is written in Rust and leverages
+//! * [josekit](https://docs.rs/josekit) (which depends internally on [openssl](https://docs.rs/openssl)
+//! * [pkcs8](https://docs.rs/pkcs8)
+//! * [pkcs1](https://docs.rs/pkcs1)
+//! * [serde](https://docs.rs/serde), [serde_json](https://docs.rs/serde_json) and [base64](https://docs.rs/base64)
+//! * [thiserror](https://docs.rs/thiserror) and [anyhow](https://docs.rs/anyhow)
+//! * [clap](https://docs.rs/clap)
 //!
 //! I created this program for 2 reasons:
-//! * I could not find a solution that didn't involve Node or Python
+//! * I could not find a simple solution that didn't involve Node or Python
 //! * I wanted to learn Rust
 //!
 //! # File Formats
+//! This app makes zero attempt to self determine file formats.  There is a
+//! reasonable default (PEM encoded PKCS8 for input, JWK for output).  But
+//! otherwise, you must specify the file formats.
+//!
+//!
 //! The following file formats are supported for both reading and writing files.
 //!
 //! ## PEM
-//! The PEM format is the default format when generating keys with Openssl.  It
+//! The PEM format is the default when generating keys with Openssl.  It
 //! is a Base64 encoded PKCS8 or PKCS1 file with header and footer, like this,
 //! for PKCS8:
 //!
 //! ````
 //! -----BEGIN PRIVATE KEY-----
-//! <base64 encoded content
+//! <base64 encoded content>
 //! -----END PRIVATE KEY-----
 //! ````
 //!
-//! Or like this for PKCS1
+//! Or like this for PKCS1:
 //!
 //! ````
 //! -----BEGIN RSA PRIVATE KEY-----
-//! <base64 encoded content
+//! <base64 encoded content>
 //! -----END RSA PRIVATE KEY-----
 //! ````
 //!
 //! ## DER
 //! DER is binary encoding of the raw ASN.1 key in either PKCS8 or PKCS1 format.
+//! If you strip the headers, and base64 decode a PEM file, you have a DER file.
 //!
 //! ## JWK
 //! JSON Web Key (JWK) is a standard format used in JSON based protocols, such as
 //! OAuth 2 and OpenID Connect (OIDC). It is part of the JOSE family of open standards
 //! for encrypting and signing JWT tokens.
+//! This app produces JSON for both normal and protected JWK files.
 //!
 //! # Command line Usage
 //! To see all the command line args, run `pkcs_jwk -h`.
 //!
-//! ## Streaming a (PKCS8) PEM RSA Private key to (PKCS1) JWK
-//! This is the default mode.  The app will read a PKCS8 stdin and write  (PKCS1) JWK to stdout.
-//! Add this at the end of an openssl key generation for JWK output (note: `jq .` for pretty print):
+//! ## Streaming a (PKCS8) PEM RSA Private key to (unprotected) JWK
+//! This is the default mode.  The app will read a PKCS8 stdin and write JWK in
+//! JSON format to stdout.
+//! Add this at the end of an openssl key generation for JWK output:
 //!
+//! ````bash
+//! > openssl genrsa -outform DER 2048 | pkcs_jwk | jq .
+//! {
+//! "kty": "RSA",
+//! "n": "prZUJzLo2Vvua1d_EXx_4bn8y2v16eJ...",
+//! "e": "AQAB",
+//! "d": "73nRIPi988-bA7_QAJs4IkDas8IAZKu...",
+//! "p": "1me8PAQmRXD2G5klt5E4cDKqcF6cPv_...",
+//! "q": "xw31cRUic4Z2B-xncBqwFyFOkyCrIL...",
+//! "dp": "Rj1Jv2ekmg89sSDk6FRc5vTSPWnhS...",
+//! "dq": "wvwMckI2ph2PnwFW7bxmw7GPq5Vzr...",
+//! "qi": "IkLk2-COQFR9MiFpPboIaa9GxN2-..."
+//! }
 //! ````
-//! openssl genrsa -outform DER 2048 | pkcs_jwk | jq .
-//! ````
+//! \[ **Note:**  `jq .` , for pretty print, is not part of this app \]
 //!
+//! ## Streaming a password protected PEM witn unprotected output
+//! Managing passwords follows the openssl format for both input (`--inpass`)
+//! and output (`--outpass`).  The password arg takes one of the following forms:
+//! * `pass:<password>`: The password is in the command line argument (insecure)
+//! * `file:<filename>`: The password is stored in a file (more secure)
+//!
+//! ````bash
+//! > pkcs_jwk --in <mypkcs8.pem> --inpass pass:password
+//! ````
+//! **Note**: The arg prefix is case insensitive. But the arg postfix is not.
+//!
+//! ## Streaming to a password protected JWK
+//! A password protected JWK is actually a JWE. In order to encode as JSON (rather
+//! than JWE dot separated values), this app follows the structure of the
+//! SmallStep CLI:
+//! ````json
+//! {
+//!     "protected": "<protected_value>",
+//!     "encrypted_key": "<encrypted_key_value>",
+//!     "iv": "<iv_value>",
+//!     "ciphertext": "<ciphertext_value>",
+//!     "tag": "<tag_value>"
+//! }
+//! ````
+//! You can convert this to a standard dot separated JWE pretty easily:
+//! ````
+//!  "<protected_value>.<encrypted_key_value>.<iv_value>.<ciphertext_value>.<tag_value>"
+//! ````
+//! Streaming to a password protected JWK (JWE) simply requires adding the `--outpass`
+//! argument:
+//!
+//! ````bash
+//! > pkcs_jwk --in <mypkcs8.pem> --inpass file:password.txt --outpass file:password.txt
+//! {
+//!   "protected": "eyJhbGciOiJQQkVTMi1IU...",
+//!   "encrypted_key": "XJOlqFovuvwx5fmzg...",
+//!   "iv": "2QWFTumqYfCh-c_D",
+//!   "ciphertext": "LW7-f9dx8rSA89wn5Uit...",
+//!   "tag": "x6tzy2VCD346Yvwfeo-YxA"
+//! }
+//! ````
 //!
 use pkcs8;
 
@@ -58,11 +124,13 @@ use openssl::{pkey::Private, rsa::Rsa};
 
 use crate::app_state::*;
 use crate::errors::Error;
+use crate::jwe::EncryptedJWK;
 
 pub mod app_state;
 pub mod cli;
 pub mod errors;
 pub mod file;
+pub mod jwe;
 
 /// Create RSA<Private> from PKCS8 PEM buffer
 fn pkcs8_pem_to_rsa_private(bytes: &Vec<u8>) -> Result<Rsa<Private>> {
@@ -174,7 +242,15 @@ fn rsa_to_jwk(key: &Rsa<Private>, key_id: &Option<String>) -> Result<Jwk> {
 /// Write RSA<Private> to PEM buffer
 fn rsa_private_to_pkcs1_jwk(app_state: &mut AppState, key: &Rsa<Private>) -> Result<Vec<u8>> {
     let jwk = rsa_to_jwk(key, &app_state.key_id)?;
-    Ok(jwk.to_string().as_bytes().to_vec())
+
+    let bytes = match &app_state.out_params.password {
+        Some(password) => {
+            let ejwk = EncryptedJWK::encrypt(password.as_bytes(), &jwk)?;
+            ejwk.to_string().as_bytes().to_vec()
+        },
+        None => jwk.to_string().as_bytes().to_vec()
+    };
+    Ok(bytes)
 }
 
 fn rsa_private_to_bytes(app_state: &mut AppState, key: &Rsa<Private>) -> Result<Vec<u8>> {
